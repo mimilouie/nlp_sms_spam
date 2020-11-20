@@ -23,16 +23,6 @@ class BagOfWords():
                 messages.append(l[5:-1])
         return messages
 
-    def readLabels(self, fp):
-        lines = fp.readlines()
-        labels = []
-        for l in lines:
-            if l[:4] == "ham\t":
-                labels.append("ham")
-            elif l[:5] == "spam\t":
-                labels.append("spam")
-        self.labels = labels
-
     def makeDict(self, msgs):
         words = []
         for msg in msgs:
