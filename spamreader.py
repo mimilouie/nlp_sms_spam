@@ -17,21 +17,43 @@ class BagOfWords():
         lines = fp.readlines()
         messages = []
         for l in lines:
-            if l[:4] == "ham\t":
+            if l[:3] == "ham":
                 messages.append(l[4:-1])
-            elif l[:5] == "spam\t":
+            elif l[:4] == "spam":
                 messages.append(l[5:-1])
         return messages
 
-    def makeDict(self, msgs):
+    def getBigrams(self, msgs):
+        bigrams = []
+        for msg in msgs:
+            words = msg.split()
+            for i in range(len(words) - 1):
+                bigram = words[i] + "-" + words[i+1]
+                bigrams.append(bigram)
+        return bigrams
+
+    def getTrigrams(self, msgs):
+        trigrams = []
+        for msg in msgs:
+            words = msg.split()
+            for i in range(len(words) - 2):
+                trigram = words[i] + "-" + words[i+1] + "-" + words[i+2]
+                trigrams.append(trigram)
+        return trigrams
+
+    # add vocab
+    # ngrams, different tokenization, split after punctuation (. but they might be tricky bc of links and stuff idk ! ?)
+    # capitalization
+    def makeFeatures(self, msgs):
         words = []
         for msg in msgs:
             msgWords = msg.split() #(r'[.!]+|[\w]+')
             # different tokenization approaches l8r
             for word in msgWords: 
-                words.append(word.lower())
+                words.append(word)
                 # lowercased for now
-        cnt = Counter(words)
+        cnt = Counter(words) + Counter(self.getBigrams(msgs))
+        print(cnt)
         # keeping counter for now; we can filter by
         # feature frequency/infrequency later
         self.features = list(cnt.keys())
@@ -52,8 +74,9 @@ class BagOfWords():
         N = len(msgs)
         M = len(features)
         X = sparse.lil_matrix((N, M), dtype='uint8')
-        for i in range(100): #range(N):
-            print("message #", i)
+        for i in range(N): #range(N):
+            if i % 20 == 0:
+                print("message #", i)
             msgVector = self.extractFeatures(features, msgs[i])
             for j in range(M):
                 X[i,j] = msgVector[j]
@@ -63,7 +86,7 @@ def main(args):
     bagOfWords = BagOfWords()
     msgs = bagOfWords.readMessages(args.data)
     bagOfWords.readLabels(args.data)
-    bagOfWords.makeDict(msgs)
+    bagOfWords.makeFeatures(msgs)
     X = bagOfWords.process(bagOfWords.features, msgs)
     print(X.toarray())
 
