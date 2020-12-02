@@ -7,21 +7,21 @@ from sklearn.model_selection import cross_val_predict
 
 def main(args):
     # use vocab when we filter the features blah blah blah
-    bagOfWords = sr.BagOfWords(args.training, args.lower, args.trigrams, args.bigrams)
-    print("msgs [main]: \n", bagOfWords.messages)
+    bagOfWords = sr.BagOfWords(args.training, args.lower, args.bigrams, args.trigrams)
+    #print("msgs [main]: \n", bagOfWords.messages)
     bagOfWords.makeFeatures(args.start, args.end)
     clf = MultinomialNB()
     X = bagOfWords.process()
-    
+    #print(X.toarray())
     # crossval for now
     probabilities_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict_proba",cv=args.xvalidate)
     predict_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict",cv=args.xvalidate)
     for i in range(len(bagOfWords.messages)):
         p = predict_validate[i]
         args.output.write(str(i) + " " + p + " " + str(probabilities_validate[i]) + "\n")
-
-    print(predict_validate, "\n")
-    print(bagOfWords.features)
+        
+    #print(bagOfWords.labels)
+    # print(bagOfWords.features)
 
 # def main(args):
 #     bagOfWords = sr.BagOfWords(args.training, args.lower, args.bigrams, args.trigrams)
@@ -47,4 +47,3 @@ if __name__ == '__main__':
     main(args)
 
     args.training.close()
-    args.output.close()

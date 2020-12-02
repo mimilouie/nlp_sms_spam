@@ -3,9 +3,11 @@
  # CS159 Final Project 
 ##
 
+from string import punctuation
 from scipy import sparse
 from collections import Counter
 import argparse
+import re
 import sys
 from sklearn.naive_bayes import MultinomialNB
 import numpy as np
@@ -46,10 +48,11 @@ class BagOfWords():
         fp.seek(0)
         self.messages = messages
 
-    def getBigrams(self):
+    def getBigrams(self, msgs):
         bigrams = []
-        for msg in self.messages:
-            words = msg.split()
+        for msg in msgs:
+            #words = msg.split()
+            words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
             for i in range(len(words) - 1):
                 bigram = words[i] + "-" + words[i+1]
                 #bigrams.append(bigram.lower()) if lower else bigrams.append(bigram)
@@ -59,10 +62,11 @@ class BagOfWords():
                     bigrams.append(bigram)
         return Counter(bigrams)
 
-    def getTrigrams(self):
+    def getTrigrams(self, msgs):
         trigrams = []
-        for msg in self.messages:
-            words = msg.split()
+        for msg in msgs:
+            #words = msg.split()
+            words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
             for i in range(len(words) - 2):
                 trigram = words[i] + "-" + words[i+1] + "-" + words[i+2]
                 #trigrams.append(trigram.lower()) if lower else trigrams.append(trigram)
@@ -75,8 +79,10 @@ class BagOfWords():
     def makeVocab(self, start=None, end=None):
         words = []
         for msg in self.messages:
-            msgWords = msg.split() #(r'[.!]+|[\w]+')
+            #msgWords = msg.split() #(r'[.!]+|[\w]+')
             # different tokenization approaches l8r
+            msgWords = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
+            #print(msgWords)
             for word in msgWords: 
                 # <expression1> if <condition> else <expression2>
                 #print(word)
@@ -100,17 +106,17 @@ class BagOfWords():
         self.makeVocab(start, end)
         features = self.vocab
         if self.bigrams:
-            features += list(self.getBigrams().keys())
+            features += list(self.getBigrams(self.messages).keys())
         if self.trigrams:
-            features += list(self.getTrigrams().keys())
+            features += list(self.getTrigrams(self.messages).keys())
         self.features = features
 
     def extractFeatures(self, msg):
         cnt = Counter(msg.split()) #change to some tokenization strat later idk
         if self.bigrams:
-            cnt += self.getBigrams()
+            cnt += self.getBigrams([msg])
         if self.trigrams:
-            cnt += self.getTrigrams()
+            cnt += self.getTrigrams([msg])
         msgVector = [0]*len(self.features)
         for i in range(len(self.features)):
             if self.features[i] in cnt:
@@ -125,8 +131,8 @@ class BagOfWords():
         N = len(self.messages)
         M = len(self.features)
         X = sparse.lil_matrix((N, M), dtype='uint8')
-        for i in range(N): #range(N):
-            if i % 20 == 0:
+        for i in range(N):
+            if i % 75 == 0:
                 print("message #", i)
             msgVector = self.extractFeatures(self.messages[i])
             for j in range(M):
