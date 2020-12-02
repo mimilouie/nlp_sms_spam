@@ -5,46 +5,32 @@ from sklearn.naive_bayes import MultinomialNB
 import numpy as np
 from sklearn.model_selection import cross_val_predict
 
-def readLabels(fp):
-    lines = fp.readlines()
-    labels = []
-    for l in lines:
-        if l[:3] == "ham":
-            labels.append("ham")
-        elif l[:4] == "spam":
-            labels.append("spam")
-    return labels
+def main(args):
+    # use vocab when we filter the features blah blah blah
+    bagOfWords = sr.BagOfWords(args.training, args.lower, args.trigrams, args.bigrams)
+    print("msgs [main]: \n", bagOfWords.messages)
+    bagOfWords.makeFeatures(args.start, args.end)
+    clf = MultinomialNB()
+    X = bagOfWords.process()
+    
+    # crossval for now
+    probabilities_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict_proba",cv=args.xvalidate)
+    predict_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict",cv=args.xvalidate)
+    for i in range(len(bagOfWords.messages)):
+        p = predict_validate[i]
+        args.output.write(str(i) + " " + p + " " + str(probabilities_validate[i]) + "\n")
+
+    print(predict_validate, "\n")
+    print(bagOfWords.features)
 
 # def main(args):
-#     # use vocab when we filter the features blah blah blah
-#     bagOfWords = sr.BagOfWords()
-#     f = open("150.txt",'r')
-#     print(f)
-#     g = open("output-lowered-bigrams-2.txt",'w')
-#     labels = readLabels(f)
-#     msgs = sr.readMessages(f)
-#     print("msgs [main]: \n", msgs)
-#     print("fread\n", f.read())
-#     #print("argsread\n", args.training.read())
-#     bagOfWords.makeFeatures(msgs, args.lower, args.start, args.end, args.bigrams, args.trigrams)
-#     clf = MultinomialNB()
-#     X = bagOfWords.process(msgs, args.lower, args.bigrams, args.trigrams)
-    
-#     # crossval for now
-#     probabilities_validate = cross_val_predict(clf,X,y=labels,method="predict_proba",cv=args.xvalidate)
-#     predict_validate = cross_val_predict(clf,X,y=labels,method="predict",cv=args.xvalidate)
-#     for i in range(len(msgs)):
-#         p = predict_validate[i]
-#         g.write(str(i) + " " + p + " " + str(probabilities_validate[i]) + "\n")
-
-def main(args):
-    bagOfWords = sr.BagOfWords()
-    msgs = sr.readMessages(args.training)
-    readLabels(args.training)
-    bagOfWords.makeFeatures(msgs, args.lower, args.end, args.bigrams, args.trigrams)
-    # dont forget parameters
-    X = bagOfWords.process(msgs, args.lower, args.bigrams, args.trigrams)
-    print(X.toarray())
+#     bagOfWords = sr.BagOfWords(args.training, args.lower, args.bigrams, args.trigrams)
+#     print("MSGS:\n", bagOfWords.messages)
+#     print("LABELS:\n", bagOfWords.labels)
+#     bagOfWords.makeFeatures(args.start, args.end)
+#     # dont forget parameters
+#     X = bagOfWords.process()
+#     print(X.toarray())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -58,8 +44,7 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--end", type=int, default=None, help="end of vocab cutoff")
 
     args = parser.parse_args()
-    print(args)
     main(args)
 
-    # args.training.close()
-    # args.output.close()
+    args.training.close()
+    args.output.close()
