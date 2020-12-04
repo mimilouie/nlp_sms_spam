@@ -51,8 +51,8 @@ class BagOfWords():
     def getBigrams(self, msgs):
         bigrams = []
         for msg in msgs:
-            #words = msg.split()
-            words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
+            words = msg.split()
+            #words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
             for i in range(len(words) - 1):
                 bigram = words[i] + "-" + words[i+1]
                 #bigrams.append(bigram.lower()) if lower else bigrams.append(bigram)
@@ -65,8 +65,8 @@ class BagOfWords():
     def getTrigrams(self, msgs):
         trigrams = []
         for msg in msgs:
-            #words = msg.split()
-            words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
+            words = msg.split()
+            #words = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
             for i in range(len(words) - 2):
                 trigram = words[i] + "-" + words[i+1] + "-" + words[i+2]
                 #trigrams.append(trigram.lower()) if lower else trigrams.append(trigram)
@@ -79,9 +79,9 @@ class BagOfWords():
     def makeVocab(self, start=None, end=None):
         words = []
         for msg in self.messages:
-            #msgWords = msg.split() #(r'[.!]+|[\w]+')
             # different tokenization approaches l8r
-            msgWords = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
+            #msgWords = re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg)
+            msgWords = msg.split()
             #print(msgWords)
             for word in msgWords: 
                 # <expression1> if <condition> else <expression2>
@@ -118,7 +118,7 @@ class BagOfWords():
     # currency (pound/dollar), @
 
     def extractFeatures(self, msg):
-        cnt = Counter(re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg))
+        cnt = Counter(msg.split())
         if self.bigrams:
             cnt += self.getBigrams([msg])
         if self.trigrams:
@@ -126,31 +126,32 @@ class BagOfWords():
 
         msgVector = [0]*len(self.features)
         for i in range(len(self.features)):
-            feature = self.features[i]
+            if self.features[i] in cnt:
+                msgVector[i] = cnt[self.features[i]]
             
-            if feature in ["@", "http"]:
-                msgVector[-4] += 1
-            # token could be phone num; 5+ digit string
-            elif re.match('[0-9]{5,}', feature):
-                msgVector[-3] += 1
-            # token in form "text ____ to"
-            elif re.match('te?xt-?.+-?to', feature, re.IGNORECASE):
-                msgVector[-2] += 1
-            # token is a currency symbol
-            elif feature in "$£€" or re.match('[0-9]+-p', feature, re.IGNORECASE):
-                msgVector[-1] += 1
+            # if feature in ["@", "http"]:
+            #     msgVector[-4] += 1
+            # # token could be phone num; 5+ digit string
+            # elif re.match('[0-9]{5,}', feature):
+            #     msgVector[-3] += 1
+            # # token in form "text ____ to"
+            # elif re.match('te?xt-?.+-?to', feature, re.IGNORECASE):
+            #     msgVector[-2] += 1
+            # # token is a currency symbol
+            # elif feature in "$£€" or re.match('[0-9]+-p', feature, re.IGNORECASE):
+            #     msgVector[-1] += 1
                 
-            # other text!
-            if feature in cnt:
-                weight = 0
-                if re.match('[entry|w[oi]n|winner|stop|opt|reply|guaranteed?|urgent]', feature, re.IGNORECASE):
-                    weight = 3
-                elif re.match('[private|congrats|horny|sexy|x+|free]', feature, re.IGNORECASE):
-                    weight = 2
-                elif re.match('[call]', feature, re.IGNORECASE):
-                    weight = 1
+            # # other text!
+            # if feature in cnt:
+            #     weight = 0
+            #     if re.match('[entry|w[oi]n|winner|stop|opt|reply|guaranteed?|urgent]', feature, re.IGNORECASE):
+            #         weight = 3
+            #     elif re.match('[private|congrats|horny|sexy|x+|free]', feature, re.IGNORECASE):
+            #         weight = 2
+            #     elif re.match('[call]', feature, re.IGNORECASE):
+            #         weight = 1
 
-                msgVector[i] = cnt[self.features[i]] + weight
+            #     msgVector[i] = cnt[self.features[i]] + weight
         return msgVector
 
     #   features -> word1, word2, ...
@@ -162,7 +163,7 @@ class BagOfWords():
         M = len(self.features)
         X = sparse.lil_matrix((N, M), dtype='uint8')
         for i in range(N):
-            if i % 75 == 0:
+            if i % 500 == 0:
                 print("message #", i)
             msgVector = self.extractFeatures(self.messages[i])
             for j in range(M):
