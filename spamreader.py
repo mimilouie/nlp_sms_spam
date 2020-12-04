@@ -109,18 +109,48 @@ class BagOfWords():
             features += list(self.getBigrams(self.messages).keys())
         if self.trigrams:
             features += list(self.getTrigrams(self.messages).keys())
-        self.features = features
+        self.features = features + ["<URLEMAIL>", "<PHONE>", "<TEXT-TO>", "<CURRENCY>"]
+
+    # phone numbers (might be hard because variant phone number lengths; 5+ number strings)
+    # urls (http, //)
+    # "urgent", "claim", "win/ner", "free", "guaranteed", "reply", "won", "call" (?),
+    # "private", "opt/-out", "horny", "stop", text ____ to _____, "entry", "congrats", "sexy", "x"
+    # currency (pound/dollar), @
 
     def extractFeatures(self, msg):
-        cnt = Counter(msg.split()) #change to some tokenization strat later idk
+        cnt = Counter(re.findall('[a-zA-Z]+|[0-9]+|[{0}]+'.format(punctuation), msg))
         if self.bigrams:
             cnt += self.getBigrams([msg])
         if self.trigrams:
             cnt += self.getTrigrams([msg])
+
         msgVector = [0]*len(self.features)
         for i in range(len(self.features)):
-            if self.features[i] in cnt:
-                msgVector[i] = cnt[self.features[i]]
+            feature = self.features[i]
+            
+            if feature in ["@", "http"]:
+                msgVector[-4] += 1
+            # token could be phone num; 5+ digit string
+            elif re.match('[0-9]{5,}', feature):
+                msgVector[-3] += 1
+            # token in form "text ____ to"
+            elif re.match('te?xt-?.+-?to', feature, re.IGNORECASE):
+                msgVector[-2] += 1
+            # token is a currency symbol
+            elif feature in "$£€" or re.match('[0-9]+-p', feature, re.IGNORECASE):
+                msgVector[-1] += 1
+                
+            # other text!
+            if feature in cnt:
+                weight = 0
+                if re.match('[entry|w[oi]n|winner|stop|opt|reply|guaranteed?|urgent]', feature, re.IGNORECASE):
+                    weight = 3
+                elif re.match('[private|congrats|horny|sexy|x+|free]', feature, re.IGNORECASE):
+                    weight = 2
+                elif re.match('[call]', feature, re.IGNORECASE):
+                    weight = 1
+
+                msgVector[i] = cnt[self.features[i]] + weight
         return msgVector
 
     #   features -> word1, word2, ...

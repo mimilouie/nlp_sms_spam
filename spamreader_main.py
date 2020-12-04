@@ -1,5 +1,6 @@
 import argparse
 import spamreader as sr
+import evaluator as eval
 import sys
 from sklearn.naive_bayes import MultinomialNB
 import numpy as np
@@ -32,6 +33,41 @@ def main(args):
 #     X = bagOfWords.process()
 #     print(X.toarray())
 
+def notmain(training, output, lower, bigrams, trigrams):
+    # use vocab when we filter the features blah blah blah
+    bagOfWords = sr.BagOfWords(training, lower, bigrams, trigrams)
+    #print("msgs [main]: \n", bagOfWords.messages)
+    #bagOfWords.makeFeatures(args.start, args.end)
+    bagOfWords.makeFeatures()
+    print("last feature: " + bagOfWords.features[-10])
+    clf = MultinomialNB()
+    X = bagOfWords.process()
+    #print(X.toarray())
+    # crossval for now
+    probabilities_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict_proba",cv=10)
+    predict_validate = cross_val_predict(clf,X,y=bagOfWords.labels,method="predict",cv=10)
+    
+    for i in range(len(bagOfWords.messages)):
+        p = predict_validate[i]
+        output.write(str(i) + " " + p + " " + str(probabilities_validate[i]) + "\n")
+
+def doAll(args):
+    for n in range(3):
+        for c in (True, False):
+            order = "" if n == 0 else "B" if n == 1 else "BT"
+            bigramBool = True if (n == 1 or n == 2) else False
+            trigramBool = True if n == 2 else False
+
+            caps = "L" if c else "NL"
+            outputFilename = "output-" + caps + order + ".txt"
+            o = open(outputFilename, 'w')
+            print("predicting ... " + outputFilename)
+            notmain(args.training, o, c, bigramBool, trigramBool)
+
+            # evalFilename = "evaluated-" + caps + order + ".txt"
+            # print("evaluating ... " + evalFilename)
+            # eval.main(["-d", args.training, "-r", outputFilename, "-o", evalFilename])
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("training", type=argparse.FileType('r'), help="training dataset filepath")
@@ -44,6 +80,8 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--end", type=int, default=None, help="end of vocab cutoff")
 
     args = parser.parse_args()
-    main(args)
+    #main(args)
+    doAll(args)
 
     args.training.close()
+    # args.output.close()
